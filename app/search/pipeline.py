@@ -77,7 +77,7 @@ class SearchPipeline:
                     name=product.name,
                     category=product.category,
                     price=product.price,
-                    score=score,
+                    score=round(score, 2),
                 )
             )
         return results
