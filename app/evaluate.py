@@ -7,7 +7,14 @@ from search.catalog import load_catalog
 from search.fusion import rrf_merge
 from search.pipeline import SearchPipeline, build_pipeline
 
-RRF_K_SWEEP = [0, 1, 2, 3, 4, 5]  # k>5 не проверяем — монотонно хуже Hit@3 без выигрыша в Precision@1, см. ARCHITECTURE.md
+RRF_K_SWEEP = [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+]  # k>5 не проверяем — монотонно хуже Hit@3 без выигрыша в Precision@1, см. ARCHITECTURE.md
 
 
 @dataclass
@@ -49,7 +56,9 @@ def load_queries(csv_path: str) -> list[QueryCase]:
     return cases
 
 
-def evaluate(pipeline: SearchPipeline, queries: list[QueryCase], approach: str) -> list[EvalRow]:
+def evaluate(
+    pipeline: SearchPipeline, queries: list[QueryCase], approach: str
+) -> list[EvalRow]:
     """approach:
     - "fuzzy_lexical" -> только list_a (без вектора)
     - "vector_only"   -> только list_b (без лексики/fuzzy вообще, диагностика)
@@ -65,7 +74,11 @@ def evaluate(pipeline: SearchPipeline, queries: list[QueryCase], approach: str) 
         debug = pipeline.search_full(case.query, use_semantic=use_semantic)
 
         rank_lex = debug.list_a.get(case.expected_article, (None, None))[0]
-        rank_vec = debug.list_b.get(case.expected_article, (None, None))[0] if debug.list_b else None
+        rank_vec = (
+            debug.list_b.get(case.expected_article, (None, None))[0]
+            if debug.list_b
+            else None
+        )
 
         if approach == "vector_only":
             rank_final = rank_vec
@@ -109,7 +122,9 @@ def summarize(rows: list[EvalRow]) -> dict[str, dict[str, float]]:
     return result
 
 
-def sweep_rrf_k(pipeline: SearchPipeline, queries: list[QueryCase], rrf_k_values: list[float]) -> dict[float, dict[str, float]]:
+def sweep_rrf_k(
+    pipeline: SearchPipeline, queries: list[QueryCase], rrf_k_values: list[float]
+) -> dict[float, dict[str, float]]:
     """Свип rrf_k без повторных сетевых вызовов к TEI: list_a/list_b считаются
     ОДИН раз на запрос (use_semantic=True даёт оба), дальше для каждого k из
     свипа просто пересчитывается rrf_merge (чистая функция, без сети)."""
@@ -124,7 +139,11 @@ def sweep_rrf_k(pipeline: SearchPipeline, queries: list[QueryCase], rrf_k_values
         for case, list_a, list_b in cached:
             merged = rrf_merge(list_a, list_b, k)
             articles = [article for article, _ in merged]
-            rank = articles.index(case.expected_article) + 1 if case.expected_article in articles else None
+            rank = (
+                articles.index(case.expected_article) + 1
+                if case.expected_article in articles
+                else None
+            )
             hits1 += rank == 1
             hits3 += rank is not None and rank <= 3
         n = len(cached)
@@ -135,21 +154,34 @@ def sweep_rrf_k(pipeline: SearchPipeline, queries: list[QueryCase], rrf_k_values
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--rrf-k", type=float, default=3)
-    parser.add_argument("--sweep", action="store_true", help="прогнать RRF_K_SWEEP вместо одного --rrf-k")
-    parser.add_argument("--enrichment", type=str, default=None, help="путь к enrichment.csv (Артикул;Сценарий), опционально")
+    parser.add_argument(
+        "--sweep",
+        action="store_true",
+        help="прогнать RRF_K_SWEEP вместо одного --rrf-k",
+    )
+    parser.add_argument(
+        "--enrichment",
+        type=str,
+        default="data/enrichment.csv",
+        help="путь к enrichment.csv (Артикул;Сценарий), опционально",
+    )
     args = parser.parse_args()
 
     products = load_catalog("data/products.csv")
     queries = load_queries("data/queries.csv")
 
     embeddings_url = os.environ.get("EMBEDDINGS_URL", "http://localhost:8080")
-    pipeline = build_pipeline(products, embeddings_url, rrf_k=args.rrf_k, enrichment_path=args.enrichment)
+    pipeline = build_pipeline(
+        products, embeddings_url, rrf_k=args.rrf_k, enrichment_path=args.enrichment
+    )
 
     if args.sweep:
         sweep = sweep_rrf_k(pipeline, queries, RRF_K_SWEEP)
         print(f"{'rrf_k':>6s} {'Hybrid Precision@1':>20s} {'Hybrid Hit@3':>13s}")
         for k, metrics in sweep.items():
-            print(f"{k:6g} {metrics['precision_at_1'] * 100:19.1f}% {metrics['hit_at_3'] * 100:12.1f}%")
+            print(
+                f"{k:6g} {metrics['precision_at_1'] * 100:19.1f}% {metrics['hit_at_3'] * 100:12.1f}%"
+            )
         return
 
     rows: list[EvalRow] = []
@@ -162,27 +194,43 @@ def main() -> None:
     print(f"{'подход':16s} {'Precision@1':>12s} {'Hit@3':>8s}")
     for approach in ("fuzzy_lexical", "vector_only", "hybrid"):
         metrics = summary[approach]
-        print(f"{approach:16s} {metrics['precision_at_1'] * 100:11.1f}% {metrics['hit_at_3'] * 100:7.1f}%")
+        print(
+            f"{approach:16s} {metrics['precision_at_1'] * 100:11.1f}% {metrics['hit_at_3'] * 100:7.1f}%"
+        )
 
     out_path = "eval_results.csv"
     with open(out_path, "w", encoding="utf-8", newline="") as f:
         writer = csv.writer(f)
         writer.writerow(
             [
-                "query_id", "query", "expected_article", "approach",
-                "rank_in_lexical", "rank_in_vector", "rank_in_final",
-                "hit_at_1", "hit_at_3",
+                "query_id",
+                "query",
+                "expected_article",
+                "approach",
+                "rank_in_lexical",
+                "rank_in_vector",
+                "rank_in_final",
+                "hit_at_1",
+                "hit_at_3",
             ]
         )
         for r in rows:
             writer.writerow(
                 [
-                    r.query_id, r.query, r.expected_article, r.approach,
-                    r.rank_in_lexical, r.rank_in_vector, r.rank_in_final,
-                    r.hit_at_1, r.hit_at_3,
+                    r.query_id,
+                    r.query,
+                    r.expected_article,
+                    r.approach,
+                    r.rank_in_lexical,
+                    r.rank_in_vector,
+                    r.rank_in_final,
+                    r.hit_at_1,
+                    r.hit_at_3,
                 ]
             )
-    print(f"\nПо-запросные данные сохранены в {out_path} — для ручного разбора в Google Sheets.")
+    print(
+        f"\nПо-запросные данные сохранены в {out_path} — для ручного разбора в Google Sheets."
+    )
 
 
 if __name__ == "__main__":
