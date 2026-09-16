@@ -3,6 +3,7 @@ import csv
 import os
 from dataclasses import dataclass
 
+import build_enrichment
 from search.catalog import load_catalog
 from search.fusion import rrf_merge
 from search.pipeline import SearchPipeline, build_pipeline
@@ -57,7 +58,9 @@ def load_queries(csv_path: str) -> list[QueryCase]:
 
 
 def evaluate(
-    pipeline: SearchPipeline, queries: list[QueryCase], approach: str
+    pipeline: SearchPipeline,
+    queries: list[QueryCase],
+    approach: str,
 ) -> list[EvalRow]:
     """approach:
     - "fuzzy_lexical" -> только list_a (без вектора)
@@ -153,26 +156,27 @@ def sweep_rrf_k(
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--rrf-k", type=float, default=3)
     parser.add_argument(
         "--sweep",
         action="store_true",
-        help="прогнать RRF_K_SWEEP вместо одного --rrf-k",
-    )
-    parser.add_argument(
-        "--enrichment",
-        type=str,
-        default="data/enrichment.csv",
-        help="путь к enrichment.csv (Артикул;Сценарий), опционально",
+        help="прогнать RRF_K_SWEEP вместо основной оценки при rrf_k=3",
     )
     args = parser.parse_args()
 
+    # enrichment всегда включён и регенерируется из текущего products.csv —
+    # см. api/main.py:lifespan(), тот же принцип.
+    build_enrichment.main()
     products = load_catalog("data/products.csv")
     queries = load_queries("data/queries.csv")
 
+    # Дефолт localhost:8080 — для ручного запуска TEI (docker run без
+    # docker-compose). В этом режиме нет depends_on: service_healthy —
+    # дождитесь строки "Ready" в логах TEI перед запуском, иначе первый
+    # _embed_batch() упадёт сетевой ошибкой.
     embeddings_url = os.environ.get("EMBEDDINGS_URL", "http://localhost:8080")
+    # rrf_k=3 закреплён как константа по итогам свипа, см. ARCHITECTURE.md.
     pipeline = build_pipeline(
-        products, embeddings_url, rrf_k=args.rrf_k, enrichment_path=args.enrichment
+        products, embeddings_url, rrf_k=3, enrichment_path="data/enrichment.csv"
     )
 
     if args.sweep:
