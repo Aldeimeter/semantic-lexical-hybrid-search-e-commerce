@@ -43,10 +43,14 @@ def health() -> dict[str, str]:
 
 
 @app.get("/search")
-def search(query: str, k: int = Query(default=3, ge=1)) -> list[SearchResult]:
+def search(
+    q: str = Query(min_length=3, max_length=100), k: int = Query(default=3, ge=1)
+) -> list[SearchResult]:
     if _pipeline is None:
         raise HTTPException(status_code=503, detail="pipeline not ready")
     try:
-        return _pipeline.search(query, top_k=k, use_semantic=True)
+        return _pipeline.search(q, top_k=k, use_semantic=True)
     except Exception as exc:  # TEI недоступен в момент запроса и т.п.
-        raise HTTPException(status_code=503, detail="search backend unavailable") from exc
+        raise HTTPException(
+            status_code=503, detail="search backend unavailable"
+        ) from exc
