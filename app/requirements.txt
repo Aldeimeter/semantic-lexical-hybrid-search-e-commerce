@@ -1,0 +1,25 @@
+# Черновик — состав может уточниться при реализации.
+# Версии зафиксированы (сверены на сентябрь 2026) для воспроизводимой сборки.
+
+fastapi==0.141.1
+uvicorn[standard]==0.53.0
+
+# лексика
+rank_bm25==0.2.2
+
+# лемматизация (см. ARCHITECTURE.md п.3 — pymorphy3, не pymorphy2)
+pymorphy3==2.0.6
+pymorphy3-dicts-ru==2.4.417150.4580142
+
+# fuzzy-коррекция (см. ARCHITECTURE.md "Решено" — rapidfuzz.fuzz.ratio)
+rapidfuzz==3.14.6
+
+# HTTP-клиент к TEI-сервису эмбеддингов (VectorSearcher больше НЕ грузит
+# модель в процессе — см. ARCHITECTURE.md п.2, отклонённый вариант "вшито в образ")
+httpx==0.28.1
+
+# косинусное сходство по матрице векторов (brute-force, весь каталог)
+numpy==2.5.3
+
+# чтение products.csv/queries.csv
+pandas==3.0.5
