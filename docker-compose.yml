@@ -38,6 +38,16 @@ services:
       - ./data:/app/data
     ports:
       - "8000:8000"
+    healthcheck:
+      # curl/wget нет в python:slim-образе (см. app/Dockerfile) — команда
+      # на чистом Python, urlopen сам бросает исключение на не-2xx статус.
+      # /health не просто "процесс жив" — проверяет, что build_pipeline()
+      # в lifespan реально завершился (эмбеддинги от TEI получены).
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=5)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
     # переопределить для evaluate.py:
     #   docker compose run app python evaluate.py
 

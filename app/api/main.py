@@ -1,7 +1,7 @@
 import os
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 
 from search.catalog import load_catalog
 from search.pipeline import SearchPipeline, SearchResult, build_pipeline
@@ -19,6 +19,17 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+
+
+@app.get("/health")
+def health() -> dict[str, str]:
+    """Не просто "процесс жив" — проверяет, что build_pipeline() в lifespan
+    реально завершился (каталог загружен, эмбеддинги от TEI получены).
+    Если TEI ответил как healthy, но что-то в build_pipeline упало —
+    процесс жив, но _pipeline=None, и health должен это показать, не 200."""
+    if _pipeline is None:
+        raise HTTPException(status_code=503, detail="pipeline not ready")
+    return {"status": "ok"}
 
 
 @app.get("/search")
