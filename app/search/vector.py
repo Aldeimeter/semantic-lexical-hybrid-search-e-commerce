@@ -1,4 +1,3 @@
-import time
 from typing import TYPE_CHECKING
 
 import httpx
@@ -30,35 +29,25 @@ class VectorSearcher:
         base_url: str,
         products: list["Product"],
         client: httpx.Client | None = None,
-        ready_timeout: float = 180.0,
     ) -> "VectorSearcher":
         """base_url, например http://embeddings:80 (из docker-compose).
-        Ждёт готовности сервиса (poll /health), затем кодирует все
-        Наименования каталога с префиксом 'passage: '."""
+        Кодирует все Наименования каталога с префиксом 'passage: '.
+
+        Готовность сервиса — забота docker-compose.yml (`depends_on:
+        condition: service_healthy`), не этого кода: compose не запускает
+        контейнер app, пока embeddings не станет healthy. Раньше здесь был
+        свой poll-цикл с отдельным таймаутом (`ready_timeout`) — избыточный
+        дубль той же гарантии, только с несинхронизированным вторым
+        таймаутом (см. ARCHITECTURE.md). Единственное место, где нужен
+        щедрый запас на медленную сеть/железо, — start_period в
+        docker-compose.yml, не здесь."""
         client = client or httpx.Client(timeout=60.0)
-        cls._wait_until_ready(client, base_url, ready_timeout)
 
         articles = [p.article for p in products]
         texts = ["passage: " + p.search_text for p in products]
         vectors = cls._embed_batch(client, base_url, texts)
         matrix = cls._normalize(np.array(vectors, dtype=np.float32))
         return cls(base_url, articles, matrix, client)
-
-    @staticmethod
-    def _wait_until_ready(client: httpx.Client, base_url: str, timeout: float) -> None:
-        deadline = time.monotonic() + timeout
-        last_error: Exception | None = None
-        while time.monotonic() < deadline:
-            try:
-                resp = client.get(f"{base_url}/health", timeout=5.0)
-                if resp.status_code == 200:
-                    return
-            except httpx.HTTPError as exc:
-                last_error = exc
-            time.sleep(2.0)
-        raise RuntimeError(
-            f"Embeddings service at {base_url} не стал готов за {timeout}с"
-        ) from last_error
 
     @staticmethod
     def _embed_batch(client: httpx.Client, base_url: str, texts: list[str]) -> list[list[float]]:
