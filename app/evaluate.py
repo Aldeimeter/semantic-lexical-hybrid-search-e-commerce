@@ -136,13 +136,14 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--rrf-k", type=float, default=3)
     parser.add_argument("--sweep", action="store_true", help="прогнать RRF_K_SWEEP вместо одного --rrf-k")
+    parser.add_argument("--enrichment", type=str, default=None, help="путь к enrichment.csv (Артикул;Сценарий), опционально")
     args = parser.parse_args()
 
     products = load_catalog("data/products.csv")
     queries = load_queries("data/queries.csv")
 
     embeddings_url = os.environ.get("EMBEDDINGS_URL", "http://localhost:8080")
-    pipeline = build_pipeline(products, embeddings_url, rrf_k=args.rrf_k)
+    pipeline = build_pipeline(products, embeddings_url, rrf_k=args.rrf_k, enrichment_path=args.enrichment)
 
     if args.sweep:
         sweep = sweep_rrf_k(pipeline, queries, RRF_K_SWEEP)

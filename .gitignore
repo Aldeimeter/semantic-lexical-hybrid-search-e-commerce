@@ -1,6 +1,6 @@
 search_test_data.zip
 TODO.md
-products.csv
-queries.csv
 dialogue_log.md
 .claude
+# детерминированный вывод app/build_enrichment.py — не коммитим, регенерируется командой
+data/enrichment.csv

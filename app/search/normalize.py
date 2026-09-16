@@ -79,4 +79,4 @@ def lemmatize_catalog(products: list["Product"]) -> list[list[str]]:
     единственный проход по каталогу. Результат (параллельный products по
     индексу) передаётся и во FuzzyDictionary.build(), и в
     LexicalSearcher.build() — чтобы оба строились из идентичных лемм."""
-    return [lemmatize(tokenize(product.name)) for product in products]
+    return [lemmatize(tokenize(product.search_text)) for product in products]

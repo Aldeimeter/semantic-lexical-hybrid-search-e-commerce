@@ -39,7 +39,7 @@ class VectorSearcher:
         cls._wait_until_ready(client, base_url, ready_timeout)
 
         articles = [p.article for p in products]
-        texts = ["passage: " + p.name for p in products]
+        texts = ["passage: " + p.search_text for p in products]
         vectors = cls._embed_batch(client, base_url, texts)
         matrix = cls._normalize(np.array(vectors, dtype=np.float32))
         return cls(base_url, articles, matrix, client)

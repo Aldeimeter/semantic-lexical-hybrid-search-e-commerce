@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from .catalog import Product
+from .catalog import Product, apply_enrichment, load_enrichment
 from .fuzzy import FuzzyCorrector, FuzzyDictionary
 from .fusion import RankedList, rrf_merge
 from .lexical import LexicalSearcher
@@ -87,10 +87,19 @@ def build_pipeline(
     products: list[Product],
     embeddings_base_url: str | None,
     rrf_k: float = 0,
+    enrichment_path: str | None = None,
 ) -> SearchPipeline:
     """Единая точка сборки — вызывается и из evaluate.py:main(), и из
     api/main.py при старте. Лемматизирует каталог ОДИН раз и раздаёт
-    результат обоим потребителям (FuzzyDictionary, LexicalSearcher)."""
+    результат обоим потребителям (FuzzyDictionary, LexicalSearcher).
+
+    enrichment_path — опциональный отдельный файл (Артикул;Сценарий),
+    джойнится к products по Артикулу ДО индексации (products.csv выгружается
+    из 1С заново каждый день и не редактируется нами — обогащение живёт
+    отдельно, см. Product.search_text в catalog.py)."""
+    if enrichment_path:
+        apply_enrichment(products, load_enrichment(enrichment_path))
+
     product_lemmas = lemmatize_catalog(products)
 
     fuzzy_dict = FuzzyDictionary.build(product_lemmas)
