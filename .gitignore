@@ -4,3 +4,5 @@ dialogue_log.md
 .claude
 # детерминированный вывод app/build_enrichment.py — не коммитим, регенерируется командой
 data/enrichment.csv
+# вывод evaluate.py — попадает в data/ через bind mount, per-run, не коммитим
+data/eval_result_*.csv

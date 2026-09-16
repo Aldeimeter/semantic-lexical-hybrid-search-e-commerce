@@ -2,6 +2,7 @@ import argparse
 import csv
 import os
 from dataclasses import dataclass
+from datetime import datetime
 
 import build_enrichment
 from search.catalog import load_catalog
@@ -202,7 +203,10 @@ def main() -> None:
             f"{approach:16s} {metrics['precision_at_1'] * 100:11.1f}% {metrics['hit_at_3'] * 100:7.1f}%"
         )
 
-    out_path = "eval_results.csv"
+    # data/ — bind mount на хостовую ./data (см. docker-compose.yml), поэтому
+    # файл сразу оказывается на хосте, без docker cp.
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    out_path = f"data/eval_result_{timestamp}.csv"
     with open(out_path, "w", encoding="utf-8", newline="") as f:
         writer = csv.writer(f)
         writer.writerow(
