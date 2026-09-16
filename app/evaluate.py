@@ -7,7 +7,7 @@ from search.catalog import load_catalog
 from search.fusion import rrf_merge
 from search.pipeline import SearchPipeline, build_pipeline
 
-RRF_K_SWEEP = [0, 1, 3, 5, 10, 15, 20, 60]  # см. ARCHITECTURE.md "Решено" — rrf_k
+RRF_K_SWEEP = [0, 1, 2, 3, 4, 5]  # k>5 не проверяем — монотонно хуже Hit@3 без выигрыша в Precision@1, см. ARCHITECTURE.md
 
 
 @dataclass
