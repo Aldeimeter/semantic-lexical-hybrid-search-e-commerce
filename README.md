@@ -20,8 +20,11 @@ docker compose up -d --build
 # 2. Прогнать оценку качества (пишет data/eval_result_<timestamp>.csv)
 docker compose run --rm app python evaluate.py
 
-# 3. Запросить поиск
-curl "http://localhost:8000/search?q=свечки+на+торт+для+мальчика&k=3"
+# 3.a Запросить поиск
+curl -sG "http://localhost:8000/search" --data-urlencode "q=свечки на торт для мальчика" --data-urlencode "k=3"
+
+# 3.b в браузере ввести ссылку
+http://localhost:8000/search?q=свечки+на+торт+для+мальчика&k=3
 ```
 
 Остановить: `docker compose down` (добавить `-v`, чтобы также удалить кэш
